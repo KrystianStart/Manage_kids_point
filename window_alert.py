@@ -1,10 +1,7 @@
-import os
 import customtkinter as ctk
 
 
-def window_alert(text, number):
-    if number != 0:
-        os.remove(f'files/plik{number}.xlsx')
+def window_alert(text):
 
     window = ctk.CTk()
     window.geometry('640x70')
@@ -25,10 +22,3 @@ def window_alert(text, number):
     button.pack()
     window.mainloop()
 
-
-def check_exist(number):
-    folder = os.listdir("files")
-    if len(folder) == 0:
-        window_alert("Nie istnieje jeszcze zaden turnus", 0)
-    else:
-        pass

@@ -1,49 +1,96 @@
+import os
 from openpyxl import load_workbook
+from openpyxl import Workbook
 import re
-import mysql.connector
+import window_alert
 
 
-mydb = mysql.connector.connect(user='user',
-                               password='password',
-                               host='host',
-                               database='database',
-                               port='port')
+class Turnus:
+    def __init__(self, number):
+        self.number = number
+        self.name = 'name'
+        self.surname = 'surname'
+        self.groups = 'groups'
+        self.night_groups = 'night_groups'
+        self.gender = 'gender'
 
-correct = []
+        self.kids_names = []
+        self.groups_mens = 1
+        self.groups_women = 2
+        self.counter_mens = 0
+        self.counter_women = 0
+        self.counter_night_group = 0
+        self.wb = Turnus.create_workbook(number)
+        self.sheet = self.wb.active
 
+    def read(self):
+        wb = load_workbook(f'files/plik{self.number}.xlsx')
+        sheet_name = "DZIECI"
+        if sheet_name in wb.sheetnames.pop(0).upper():
 
-def read(number):
-    wb = load_workbook(f'files/plik{number}.xlsx')
-    sheet_name = "DZIECI"
-    if sheet_name in wb.sheetnames.pop(0).upper():
+            ws = wb.worksheets[0]
 
-        ws = wb.worksheets[0]
-
-        global mydb,  mycursor
-
-        mycursor = mydb.cursor()
-
-        for row in ws.iter_rows(min_row=2, min_col=4, max_col=4):
-            for cell in row:
-                if cell.value is None:
-                    mydb.commit()
-                    return
-                elif cell.value in correct:
-                    continue
-                else:
-                    name, surname = re.split(r'\s(?=[a-z][A-Z])|\s', cell.value, maxsplit=1)
-
-                    ofnames = ['NIKOL', 'NICOLE', 'NIKOLE', 'NEL', 'BERNEIKE', 'DORIS', 'DOLORES', 'NELLY', 'SALOME']
-
-                    if str(name[-1]).upper() != 'A' or str(name) == 'KUBA' and str(name).upper() not in ofnames:
-                        value(name, surname, "M")
+            for row in ws.iter_rows(min_row=2, min_col=4, max_col=4):
+                for cell in row:
+                    if cell.value is None:
+                        self.wb.save(f"files/turnus{self.number}.xlsx")
+                        break
+                    elif cell.value in self.kids_names:
+                        continue
                     else:
-                        value(name, surname, "F")
+                        self.kids_names.append(cell.value)
+                        self.name, self.surname = re.split(r'\s(?=[a-z][A-Z])|\s', cell.value, maxsplit=1)
+                        Turnus.gender_name_create(self)
 
-                    correct.append(cell.value)
+        else:
+            window_alert.window_alert('Sprawdz poprawnosc tego pliku gdyz nie zawiera on arkuszu dzieci')
+            os.remove(f'files/turnus{self.number}.xlsx')
+        os.remove(f'files/plik{self.number}.xlsx')
 
+    def gender_name_create(self):
+        names_women = ['NIKOL', 'NICOLE', 'NIKOLE', 'NEL', 'BERNEIKE', 'DORIS', 'DOLORES', 'NELLY', 'SALOME']
 
-def value(name, surname, gender):
-    execute_data = "INSERT INTO Test (`Name`, `Surname`, `Gender`) VALUES (%s, %s, %s)"
-    data = (name, surname, gender)
-    mycursor.execute(execute_data, data)
+        if str(self.name[-1]).upper() != 'A' or (str(self.name).upper() == 'KUBA' and str(self.name).upper()
+                                                 not in names_women):
+            self.counter_mens += 1
+            self.counter_night_group += 1
+            self.gender = 'M'
+        else:
+            self.counter_women += 1
+            self.counter_night_group += 1
+            self.gender = 'F'
+
+        Turnus.allocation_groups(self)
+
+    def allocation_groups(self):
+        if self.gender == 'M':
+            if self.counter_mens / 11 % 1 == 0:
+                self.groups_mens += 2
+            self.groups = self.groups_mens
+        else:
+            if self.counter_women / 11 % 1 == 0:
+                self.groups_women += 2
+            self.groups = self.groups_women
+
+        self.night_groups = int(self.counter_night_group / 15) + 1
+
+        Turnus.save(self)
+
+    def save(self):
+        sheet = self.wb.active
+        row_data = [self.name, self.surname, self.groups, self.night_groups, self.gender]
+        sheet.append(row_data)
+
+    @staticmethod
+    def create_workbook(number):
+        wb = Workbook()
+
+        ws = wb.active
+
+        column_data = ['Name', 'Surname', 'Groups', 'NightGroups', 'Gender']
+        ws.append(column_data)
+
+        wb.save(f"files/turnus{number}.xlsx")
+
+        return wb
+

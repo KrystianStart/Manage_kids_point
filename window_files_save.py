@@ -55,4 +55,5 @@ def load(number):
         return
     destination_path = os.path.join("files", f"plik{number}.xlsx")
     shutil.copy(file_path, destination_path)
-    read_files.read(number)
+    turnus = read_files.Turnus(number)
+    read_files.Turnus.read(turnus)
